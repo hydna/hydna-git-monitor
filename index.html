@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hydna Git Monitor</title>
+    <style>
+    .status {
+      display: none;
+    }
+    .online .online {
+      display: block;
+    }
+    .offline .offline {
+      display: block;
+    }
+    #message-template {
+      display: none;
+    }
+    .message {
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .message img {
+      float: left;
+      background-size: auto 50%;
+      width: 50px;
+      margin-right: 10px;
+    }
+    .message p {
+      margin: 0;
+    }
+    </style>
+  </head>
+  <body class="offline">
+    <h1>Hydna Git Monitor</h1>
+    <p class="status online">Online</p>
+    <p class="status offline">Offline</p>
+    <ul id="messages">
+    </ul>
+    <li id="message-template" class="message">
+      <img src=""><strong></strong>
+      <p></p>
+    </li>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.0.2/build/rollups/md5.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/hydna/1.0.0/hydna.js"></script>
+    <script>
+      var channel = new HydnaChannel("jfd.hydna.net/git", "r");
+
+      channel.onopen = function () {
+        document.body.className = "online";
+      };
+      channel.onmessage = function (e) {
+        postCommit(e.data);
+      };
+      channel.onclose = function () {
+        document.body.className = "offline";
+      };
+
+      function postCommit (data) {
+        var messages;
+        var message;
+        var commit;
+        var emailhash;
+        var gravatar;
+
+        commit = decodeCommit(data);
+
+        emailhash = CryptoJS.MD5(commit.email);
+
+        gravatar = "http://www.gravatar.com/avatar/" + emailhash;
+
+        message = document.getElementById("message-template").cloneNode(true);
+
+        message.setAttribute("id", String(commit.id));
+
+        message.querySelector("strong").innerHTML = commit.email;
+        message.querySelector("p").innerHTML = commit.message.replace(/\+/, " ");
+        message.querySelector("img").setAttribute("src", gravatar);
+
+        messages = document.getElementById("messages");
+        messages.insertBefore(message, messages.firstChild);
+      }
+
+      function decodeCommit (data) {
+        var unescaped;
+        var id;
+        var email;
+        var message;
+
+        unescaped  = unescape(data);
+
+        id = /id\":\"([A-Za-z0-9\s\.]+)\"/.exec(unescaped)[1];
+        email = /email\":\"([a-z\.\@]+)\"/.exec(unescaped)[1];
+        message = /message\":\"([A-Za-z0-9\s\.\+]+)/.exec(unescaped)[1];
+
+        return {id: id, email: email, message: message };
+      }
+
+    </script>
+  </body>
+</html>
